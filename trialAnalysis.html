@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management System</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --error-color: #e74c3c;
+            --success-color: #27ae60;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f6fa;
+        }
+
+        .container { 
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .form-section { 
+            margin-bottom: 30px; 
+            padding: 25px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"], 
+        input[type="tel"],
+        select { 
+            padding: 12px;
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #eee;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+
+        button { 
+            padding: 12px 25px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+
+        th, td { 
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .delete-btn {
+            background: var(--error-color);
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-section">
+            <h2>Add Employee</h2>
+            <div class="form-group">
+                <input type="text" id="empName" placeholder="Full Name" required>
+                <input type="tel" id="empPhone" placeholder="Phone Number" pattern="[0-9]{10}" required>
+                <select id="empType" required>
+                    <option value="" disabled selected>Employee Type</option>
+                    <option value="regular">Regular</option>
+                    <option value="distinguished">Distinguished</option>
+                    <option value="top seller">Top Seller</option>
+                </select>
+            </div>
+            <button onclick="addEmployee()">Add Employee</button>
+            <div id="empAlert" class="alert"></div>
+        </div>
+        
+        <h2>Employee List</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="employeeList"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAi3_y7ugKB0cgzMV1-IVvbE2BwG_9RKSs",
+            authDomain: "team-analysis-3c196.firebaseapp.com",
+            databaseURL: "https://team-analysis-3c196-default-rtdb.firebaseio.com",
+            projectId: "team-analysis-3c196",
+            storageBucket: "team-analysis-3c196.appspot.com",
+            messagingSenderId: "38968485922",
+            appId: "1:38968485922:web:667832a4aa77599ba8a6fb",
+            measurementId: "G-853WkH2JK7"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Employee Functions
+        async function addEmployee() {
+            const name = document.getElementById('empName').value.trim();
+            const phone = document.getElementById('empPhone').value.trim();
+            const type = document.getElementById('empType').value;
+
+            if (!name || !phone || !type) {
+                showAlert('error', 'Please fill all fields!', 'empAlert');
+                return;
+            }
+
+            if (!/^\d{10}$/.test(phone)) {
+                showAlert('error', 'Invalid phone number (10 digits required)', 'empAlert');
+                return;
+            }
+
+            try {
+                await database.ref('employees').push({
+                    name,
+                    phone,
+                    type
+                });
+                document.getElementById('empName').value = '';
+                document.getElementById('empPhone').value = '';
+                document.getElementById('empType').value = '';
+                showAlert('success', 'Employee added successfully!', 'empAlert');
+            } catch (error) {
+                showAlert('error', `Error: ${error.message}`, 'empAlert');
+            }
+        }
+
+        // Real-time Employee List
+        database.ref('employees').on('value', snapshot => {
+            const employees = snapshot.val() || {};
+            const tbody = document.getElementById('employeeList');
+            tbody.innerHTML = Object.entries(employees).map(([key, emp]) => `
+                <tr>
+                    <td>${emp.name}</td>
+                    <td>${emp.phone}</td>
+                    <td>${emp.type.charAt(0).toUpperCase() + emp.type.slice(1)}</td>
+                    <td>
+                        <button class="delete-btn" onclick="deleteEmployee('${key}')">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        });
+
+        async function deleteEmployee(key) {
+            if (!confirm('Are you sure you want to delete this employee?')) return;
+            await database.ref(`employees/${key}`).remove();
+        }
+
+        function showAlert(type, message, elementId) {
+            const alert = document.getElementById(elementId);
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 3000);
+        }
+    </script>
+</body>
+</html>
