@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mulberry store - عجلة جوائز mulberry</title>
+  <!-- خط عصري من Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- تحميل مكتبات Firebase (الإصدارات المتوافقة) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  
+  <style>
+    /* إعادة تعيين الأنماط */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      background: #000;
+    }
+    /* خلفية الفيديو باستخدام الرابط المرسل */
+    .video-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+    }
+    /* شريط التنقل مع z-index أعلى لضمان بقاء الزر ظاهرًا */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+    }
+    nav .logo {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #fff;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+    }
+    nav ul li { margin: 0 15px; }
+    nav ul li a {
+      text-decoration: none;
+      color: #fff;
+      font-size: 1.1em;
+      transition: color 0.3s;
+    }
+    nav ul li a:hover { color: #f1c40f; }
+    /* المحتوى الرئيسي */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      text-align: center;
+      padding-top: 70px; /* مساحة لشريط التنقل */
+    }
+    .main-content h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+      color: #fff;
+    }
+    /* حاوية Three.js لعجلة الحظ */
+    .threejs-container {
+      position: relative;
+      width: 80vmin;
+      height: 80vmin;
+      margin: 20px auto;
+      border: 5px solid rgba(255,255,255,0.5);
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0,0,0,0.9);
+      transform: perspective(1000px);
+    }
+    /* مؤشر ثابت (Pointer) */
+    .pointer {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-bottom: 30px solid #f1c40f;
+      z-index: 2;
+    }
+    /* زر الدوران */
+    #spinButton {
+      margin-top: 20px;
+      padding: 15px 30px;
+      font-size: 1.3em;
+      cursor: pointer;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(45deg, #ff416c, #ff4b2b);
+      color: #fff;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    #spinButton:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+    /* النوافذ المنبثقة (Modal) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 20;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal-content {
+      background: #fff;
+      color: #000;
+      padding: 30px 40px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 80%;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    }
+    .modal-content h2 {
+      margin-bottom: 15px;
+    }
+    .modal-content p {
+      margin-bottom: 15px;
+    }
+    .modal-content input {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 1em;
+    }
+    .close-modal {
+      margin-top: 20px;
+      cursor: pointer;
+      background: #3498db;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 1em;
+    }
+  </style>
+  
+  <!-- تهيئة Firebase -->
+  <script>
+    // إعدادات Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAi3_y7ugKB0cgzMV1-IVvbE2BwG_9RKSs",
+      authDomain: "team-analysis-3c196.firebaseapp.com",
+      databaseURL: "https://team-analysis-3c196-default-rtdb.firebaseio.com",
+      projectId: "team-analysis-3c196",
+      storageBucket: "team-analysis-3c196.firebasestorage.app",
+      messagingSenderId: "38968485922",
+      appId: "1:38968485922:web:667832a4aa77599ba8a6fb",
+      measurementId: "G-853WkH2JK7"
+    };
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase initialized");
+  </script>
+  
+</head>
+<body>
+  <!-- خلفية الفيديو باستخدام الرابط المرسل -->
+  <video autoplay muted loop class="video-background">
+    <source src="https://media.istockphoto.com/id/1144751020/video/the-muslim-family-husband-wife-and-children-eid-ramadan-salam-quran-mubarak-family-prayers.mp4?s=mp4-640x640-is&k=20&c=ZEh4zko-bJE6ZkvgYNzyRHB6W4tHNgXBhco-DDW1J7U=" type="video/mp4">
+    متصفحك لا يدعم تشغيل الفيديو.
+  </video>
+  <!-- شريط التنقل -->
+  <nav>
+    <div class="logo">mulberry store</div>
+    <ul>
+      <li>
+        <a href="https://www.instagram.com/mulberry.ps/" target="_blank">تواصل معنا لاستلام جائزتك</a>
+      </li>
+    </ul>
+  </nav>
+  <!-- المحتوى الرئيسي -->
+  <div class="main-content" id="home">
+    <h1>عجلة جوائز mulberry</h1>
+    <div class="threejs-container" id="threejs-container">
+      <!-- مؤشر النتيجة -->
+      <div class="pointer"></div>
+    </div>
+    <button id="spinButton">ادور العجلة</button>
+  </div>
+  <!-- النافذة المنبثقة لعرض الجائزة أو تفعيل فترة الانتظار -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content" id="modal-content">
+      <!-- سيتم تعبئتها ديناميكياً -->
+    </div>
+  </div>
+  
+  <!-- مكتبة Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- مكتبة GSAP للأنيميشن -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.6.1/gsap.min.js"></script>
+  <script>
+    /* قائمة الجوائز */
+    const segments = [
+      "قسيمة شراء بقيمة 100 شيكل",
+      "قسيمة شراء بقيمة 50 شيكل",
+      "كوبون خصم 50%",
+      "كوبون خصم 30%",
+      "كوبون خصم 20%",
+      "كوبون خصم 10%",
+      "عطر hooked ستاتي/رجالي",
+      "حظاً أوفر"
+    ];
+    /* ألوان القطاعات */
+    const segmentColors = ["#e74c3c", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6", "#e67e22", "#1abc9c", "#e91e63"];
+    /* نسب الفوز لكل قسم */
+    const weights = [0, 0, 0, 5, 15, 50, 0, 30];
+    
+    // دالة لإنشاء نسيج عجلة الحظ باستخدام canvas غير مرئي
+    function createWheelTexture(segments, colors) {
+      const size = 1024;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const centerX = size / 2, centerY = size / 2;
+      const radius = size / 2 - 50;
+      const numSegments = segments.length;
+      const anglePerSegment = 2 * Math.PI / numSegments;
+      
+      for (let i = 0; i < numSegments; i++) {
+        const startAngle = i * anglePerSegment;
+        const endAngle = startAngle + anglePerSegment;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+        // رسم النص داخل كل قطاع
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + anglePerSegment / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 50px 'Cairo', sans-serif";
+        ctx.fillText(segments[i], radius - 20, 20);
+        ctx.restore();
+      }
+      return canvas;
+    }
+    
+    /* إعداد مشهد Three.js */
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000000, 0.035);
+    
+    /* إعداد الكاميرا بناءً على حجم الحاوية */
+    const container = document.getElementById('threejs-container');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(0, 8, 12);
+    camera.lookAt(0, 0, 0);
+    
+    /* إعداد المرسّم */
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+    
+    window.addEventListener('resize', () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    });
+    
+    /* إنشاء نسيج عجلة الحظ */
+    const wheelCanvas = createWheelTexture(segments, segmentColors);
+    const wheelTexture = new THREE.CanvasTexture(wheelCanvas);
+    wheelTexture.needsUpdate = true;
+    
+    /* إنشاء هندسة العجلة */
+    const wheelRadius = 5;
+    const wheelThickness = 1;
+    const geometry = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelThickness, 64, 1, false);
+    geometry.rotateX(Math.PI / 2);
+    
+    /* إعداد مواد العجلة */
+    const materialTop = new THREE.MeshPhongMaterial({ map: wheelTexture });
+    const materialSide = new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 100 });
+    const materialBottom = new THREE.MeshPhongMaterial({ color: 0x222222 });
+    const wheel = new THREE.Mesh(geometry, [materialSide, materialTop, materialBottom]);
+    scene.add(wheel);
+    
+    /* إضافة الإضاءة */
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(10, 10, 10);
+    scene.add(directionalLight);
+    
+    /* إضافة أرضية بسيطة لإضفاء عمق وتأثير انعكاسي */
+    const floorGeometry = new THREE.PlaneGeometry(200, 200);
+    const floorMaterial = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 50 });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -wheelThickness / 2 - 0.1;
+    scene.add(floor);
+    
+    /* إعداد متغيرات الدوران */
+    let isSpinning = false;
+    let spinStartTime = null;
+    let spinDuration = 5000; // مدة الدوران (5 ثوانٍ)
+    let initialRotation = 0;
+    let targetRotation = 0;
+    
+    /* دالة تخفيف (Easing) */
+    function easeOutCubic(t) {
+      return (--t) * t * t + 1;
+    }
+    
+    /* دالة لإغلاق النافذة وبدء فترة الانتظار (Cooldown) */
+    function closeModalAndStartCooldown() {
+      const modalOverlay = document.getElementById('modal-overlay');
+      gsap.to(modalOverlay, { duration: 0.3, opacity: 0, scale: 0.8, onComplete: () => {
+        modalOverlay.classList.remove('active');
+        modalOverlay.innerHTML = '<div class="modal-content" id="modal-content"></div>';
+        startCooldown();
+      }});
+    }
+    
+    /* دالة لإظهار نافذة الانتظار مع المؤقت (Cooldown) */
+    function showCooldownOverlay(endTime) {
+      const modalOverlay = document.getElementById('modal-overlay');
+      modalOverlay.innerHTML = `
+        <div class="modal-content" id="cooldownContent">
+          <h2>🔒</h2>
+          <p>يمكنك المحاولة مرة اخرى بعد يومين</p>
+          <p id="cooldownTimer"></p>
+        </div>
+      `;
+      modalOverlay.classList.add('active');
+      gsap.fromTo(modalOverlay, { scale: 0.8, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1 });
+      const timerElement = document.getElementById("cooldownTimer");
+      document.getElementById("spinButton").disabled = true;
+      const intervalId = setInterval(() => {
+        const remaining = endTime - Date.now();
+        if (remaining <= 0) {
+          clearInterval(intervalId);
+          modalOverlay.classList.remove('active');
+          modalOverlay.innerHTML = '<div class="modal-content" id="modal-content"></div>';
+          document.getElementById("spinButton").disabled = false;
+        } else {
+          timerElement.innerText = formatTime(remaining);
+        }
+      }, 1000);
+    }
+    
+    /* دالة لتنسيق الوقت */
+    function formatTime(ms) {
+      let totalSeconds = Math.floor(ms / 1000);
+      let days = Math.floor(totalSeconds / 86400);
+      totalSeconds %= 86400;
+      let hours = Math.floor(totalSeconds / 3600);
+      totalSeconds %= 3600;
+      let minutes = Math.floor(totalSeconds / 60);
+      let seconds = totalSeconds % 60;
+      return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+    
+    /* دالة لبدء فترة الانتظار (Cooldown) لمدة يومين */
+    function startCooldown() {
+      localStorage.setItem("lastSpin", Date.now());
+      const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
+      const endTime = Date.now() + cooldownDuration;
+      showCooldownOverlay(endTime);
+    }
+    
+    /* فحص فترة الانتظار عند تحميل الصفحة */
+    function checkCooldown() {
+      const lastSpin = localStorage.getItem("lastSpin");
+      if (lastSpin) {
+        const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
+        const endTime = parseInt(lastSpin) + cooldownDuration;
+        const remaining = endTime - Date.now();
+        if (remaining > 0) {
+          showCooldownOverlay(endTime);
+        }
+      }
+    }
+    checkCooldown();
+    
+    /* دالة لإظهار نافذة الجائزة أو النموذج */
+    function showPrize(prize) {
+      const modalContent = document.getElementById('modal-content');
+      if (prize === "حظاً أوفر") {
+        modalContent.innerHTML = `
+          <h2>نتمنى لك حظاً أوفر في المرة القادمة</h2>
+          <button class="close-modal" id="closeModal">إغلاق</button>
+        `;
+        document.getElementById('closeModal').addEventListener('click', () => {
+          closeModalAndStartCooldown();
+        });
+      } else {
+        modalContent.innerHTML = `
+          <h2>مبروك!</h2>
+          <p>لقد ربحت: <strong>${prize}</strong></p>
+          <p>يرجى إدخال اسم المستخدم على إنستاجرام ورقم الواتس اب لضمان تسليم الجائزة للشخص الصحيح واستلام الجائزة.</p>
+          <input type="text" id="instagramInput" placeholder="اسم المستخدم على إنستاجرام">
+          <input type="text" id="whatsappInput" placeholder="رقم الواتس اب">
+          <button class="close-modal" id="submitInfo" style="background: #27ae60;">إرسال المعلومات</button>
+        `;
+        document.getElementById('submitInfo').addEventListener('click', () => {
+          const instagram = document.getElementById('instagramInput').value.trim();
+          const whatsapp = document.getElementById('whatsappInput').value.trim();
+          if (!instagram || !whatsapp) {
+            alert("يرجى ملء جميع الحقول المطلوبة لاستلام الجائزة.");
+            return;
+          }
+          firebase.database().ref('prizes').push({
+            instagram: instagram,
+            whatsapp: whatsapp,
+            prize: prize,
+            timestamp: Date.now()
+          }, (error) => {
+            if (error) {
+              alert("حدث خطأ أثناء إرسال المعلومات. يرجى المحاولة مرة أخرى.");
+            } else {
+              alert("تم إرسال معلوماتك بنجاح، سيتم التواصل معك لتسليم الجائزة.");
+              closeModalAndStartCooldown();
+            }
+          });
+        });
+      }
+      const modalOverlay = document.getElementById('modal-overlay');
+      modalOverlay.classList.add('active');
+      gsap.fromTo(modalOverlay, { scale: 0.8, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1 });
+    }
+    
+    /* حلقة الرسوم المتحركة */
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+      if (isSpinning) {
+        if (!spinStartTime) spinStartTime = timestamp;
+        const elapsed = timestamp - spinStartTime;
+        if (elapsed < spinDuration) {
+          const progress = elapsed / spinDuration;
+          const easedProgress = easeOutCubic(progress);
+          wheel.rotation.z = initialRotation + (targetRotation - initialRotation) * easedProgress;
+        } else {
+          wheel.rotation.z = targetRotation;
+          isSpinning = false;
+          spinStartTime = null;
+          let finalAngle = wheel.rotation.z % (2 * Math.PI);
+          if (finalAngle < 0) finalAngle += 2 * Math.PI;
+          let adjustedAngle = finalAngle + Math.PI / 2;
+          adjustedAngle = adjustedAngle % (2 * Math.PI);
+          let winningIndex = Math.floor(adjustedAngle / (2 * Math.PI / segments.length));
+          let prize = segments[winningIndex];
+          showPrize(prize);
+        }
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
+    
+    /* بدء عملية الدوران عند الضغط على الزر */
+    document.getElementById('spinButton').addEventListener('click', () => {
+      if (isSpinning || document.getElementById("spinButton").disabled) return;
+      isSpinning = true;
+      initialRotation = wheel.rotation.z;
+      let r = Math.random() * 100;
+      let cumulative = 0;
+      let winningIndex = 0;
+      for (let i = 0; i < weights.length; i++) {
+        cumulative += weights[i];
+        if (r < cumulative) {
+          winningIndex = i;
+          break;
+        }
+      }
+      const anglePerSegment = 2 * Math.PI / segments.length;
+      const desiredFinalAngle = (winningIndex + 0.5) * anglePerSegment - Math.PI / 2;
+      let currentMod = initialRotation % (2 * Math.PI);
+      if (currentMod < 0) currentMod += 2 * Math.PI;
+      let adjustment = desiredFinalAngle - currentMod;
+      if (adjustment < 0) adjustment += 2 * Math.PI;
+      const extraSpins = Math.floor(Math.random() * 3) + 4;
+      targetRotation = initialRotation + extraSpins * 2 * Math.PI + adjustment;
+      gsap.to("#spinButton", { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+    });
+  </script>
+</body>
+</html>
