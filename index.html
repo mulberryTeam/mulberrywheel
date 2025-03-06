@@ -12,15 +12,15 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   
   <style>
-    /* إعادة تعيين الأنماط */
+    /* إعادة تعيين الأنماط الأساسية */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%;
       height: 100%;
-      overflow: hidden;
       font-family: 'Cairo', sans-serif;
       direction: rtl;
       background: #000;
+      overflow-x: hidden;
     }
     /* زر "تواصل معنا لاستلام هديتك" في أقصى اليسار بالأعلى */
     #contactButton {
@@ -36,18 +36,18 @@
       text-decoration: none;
       z-index: 101;
     }
-    /* المحتوى الرئيسي */
+    /* المحتوى الرئيسي مع بعض الحشوة لتفادي خروج العناصر */
     .main-content {
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100%;
+      min-height: 100vh;
       text-align: center;
-      padding-top: 70px; /* لتعويض المساحة إذا لزم الأمر */
+      padding: 20px;
     }
     .main-content h1 {
-      font-size: 3em;
+      font-size: clamp(2rem, 5vw, 3rem);
       margin-bottom: 20px;
       text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
       color: #fff;
@@ -55,14 +55,30 @@
     /* حاوية Three.js لعجلة الحظ */
     .threejs-container {
       position: relative;
-      width: 80vmin;
-      height: 80vmin;
       margin: 20px auto;
       border: 5px solid rgba(255,255,255,0.5);
       border-radius: 50%;
       overflow: hidden;
       box-shadow: 0 0 20px rgba(0,0,0,0.9);
       transform: perspective(1000px);
+      /* ضمان عدم خروج العجلة من حدود الشاشة */
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+    /* قواعد تكبير عجلة الحظ حسب حجم الشاشة */
+    @media (max-width: 768px) {
+      .threejs-container {
+        /* 3 أضعاف الحجم الأساسي المعتمد على vmin */
+        width: calc(80vmin * 3);
+        height: calc(80vmin * 3);
+      }
+    }
+    @media (min-width: 769px) {
+      .threejs-container {
+        /* 2 ضعف الحجم الأساسي */
+        width: calc(80vmin * 2);
+        height: calc(80vmin * 2);
+      }
     }
     /* مؤشر ثابت (Pointer) */
     .pointer {
@@ -117,7 +133,7 @@
       padding: 30px 40px;
       border-radius: 8px;
       text-align: center;
-      max-width: 80%;
+      max-width: 90%;
       box-shadow: 0 5px 15px rgba(0,0,0,0.4);
     }
     .modal-content h2 {
@@ -141,20 +157,6 @@
       padding: 10px 20px;
       border-radius: 5px;
       font-size: 1em;
-    }
-    
-    /* تكبير عجلة الحظ بناءً على حجم الشاشة */
-    @media (max-width: 768px) {
-      .threejs-container {
-        width: calc(80vmin * 3);
-        height: calc(80vmin * 3);
-      }
-    }
-    @media (min-width: 769px) {
-      .threejs-container {
-        width: calc(80vmin * 2);
-        height: calc(80vmin * 2);
-      }
     }
   </style>
   
