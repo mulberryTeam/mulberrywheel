@@ -22,45 +22,22 @@
       direction: rtl;
       background: #000;
     }
-    /* خلفية الفيديو باستخدام الرابط المرسل */
-    .video-background {
+    /* زر "تواصل معنا لاستلام هديتك" الجديد في أقصى اليسار بالأعلى */
+    #contactButton {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
-    }
-    /* شريط التنقل مع z-index أعلى لضمان بقاء الزر ظاهرًا */
-    nav {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(0,0,0,0.6);
-      z-index: 100;
-    }
-    nav .logo {
-      font-size: 1.8em;
-      font-weight: bold;
+      top: 10px;
+      left: 10px;
+      font-size: 0.8em;
+      padding: 5px 10px;
+      background: linear-gradient(45deg, #ff416c, #ff4b2b);
       color: #fff;
-    }
-    nav ul {
-      list-style: none;
-      display: flex;
-    }
-    nav ul li { margin: 0 15px; }
-    nav ul li a {
+      border: none;
+      border-radius: 50px;
       text-decoration: none;
-      color: #fff;
-      font-size: 1.1em;
-      transition: color 0.3s;
+      z-index: 101;
     }
-    nav ul li a:hover { color: #f1c40f; }
+    /* إزالة شريط التنقل القديم (تم حذفه بالكامل) */
+    
     /* المحتوى الرئيسي */
     .main-content {
       display: flex;
@@ -69,7 +46,7 @@
       align-items: center;
       height: 100%;
       text-align: center;
-      padding-top: 70px; /* مساحة لشريط التنقل */
+      padding-top: 70px; /* مساحة للتعويض عن الزر الثابت إذا لزم الأمر */
     }
     .main-content h1 {
       font-size: 3em;
@@ -212,20 +189,9 @@
   
 </head>
 <body>
-  <!-- خلفية الفيديو باستخدام الرابط المرسل -->
-  <video autoplay muted loop class="video-background">
-    <source src="https://media.istockphoto.com/id/1144751020/video/the-muslim-family-husband-wife-and-children-eid-ramadan-salam-quran-mubarak-family-prayers.mp4?s=mp4-640x640-is&k=20&c=ZEh4zko-bJE6ZkvgYNzyRHB6W4tHNgXBhco-DDW1J7U=" type="video/mp4">
-    متصفحك لا يدعم تشغيل الفيديو.
-  </video>
-  <!-- شريط التنقل -->
-  <nav>
-    <div class="logo">mulberry store</div>
-    <ul>
-      <li>
-        <a href="https://www.instagram.com/mulberry.ps/" target="_blank">تواصل معنا لاستلام جائزتك</a>
-      </li>
-    </ul>
-  </nav>
+  <!-- زر تواصل معنا لاستلام هديتك في أقصى اليسار بالأعلى -->
+  <a id="contactButton" href="https://www.instagram.com/mulberry.ps/" target="_blank">تواصل معنا لاستلام هديتك</a>
+  
   <!-- المحتوى الرئيسي -->
   <div class="main-content" id="home">
     <h1>عجلة جوائز mulberry</h1>
@@ -456,7 +422,7 @@
     checkCooldown();
     
     /* دالة لإظهار نافذة الجائزة (Prize Notification)
-       يتم عرض الإشعار بعد توقف العجلة، حيث يكون قفل العجلة مفعل بالفعل */
+       يتم عرض الإشعار بعد توقف العجلة حيث يكون القفل مفعلًا بالفعل */
     function showPrize(prize) {
       const modalContent = document.getElementById('modal-content');
       if (prize === "حظاً أوفر") {
