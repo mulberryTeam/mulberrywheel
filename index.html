@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>عجلة جوائز</title>
+  <title>mulberry store - عجلة جوائز mulberry</title>
   <!-- خط عصري من Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   
@@ -12,42 +12,67 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   
   <style>
-    /* إعادة تعيين الأنماط الأساسية */
+    /* إعادة تعيين الأنماط */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%;
       height: 100%;
+      overflow: hidden;
       font-family: 'Cairo', sans-serif;
       direction: rtl;
       background: #000;
-      overflow-x: hidden;
     }
-    /* زر "تواصل معنا لاستلام هديتك" في أقصى اليسار بالأعلى */
-    #contactButton {
+    /* خلفية الفيديو باستخدام الرابط المرسل */
+    .video-background {
       position: fixed;
-      top: 10px;
-      left: 10px;
-      font-size: 0.8em;
-      padding: 5px 10px;
-      background: linear-gradient(45deg, #ff416c, #ff4b2b);
-      color: #fff;
-      border: none;
-      border-radius: 50px;
-      text-decoration: none;
-      z-index: 101;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
     }
-    /* المحتوى الرئيسي مع بعض الحشوة لتفادي خروج العناصر */
+    /* شريط التنقل مع z-index أعلى لضمان بقاء الزر ظاهرًا */
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+    }
+    nav .logo {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #fff;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+    }
+    nav ul li { margin: 0 15px; }
+    nav ul li a {
+      text-decoration: none;
+      color: #fff;
+      font-size: 1.1em;
+      transition: color 0.3s;
+    }
+    nav ul li a:hover { color: #f1c40f; }
+    /* المحتوى الرئيسي */
     .main-content {
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100%;
       text-align: center;
-      padding: 20px;
+      padding-top: 70px; /* مساحة لشريط التنقل */
     }
     .main-content h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
+      font-size: 3em;
       margin-bottom: 20px;
       text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
       color: #fff;
@@ -55,30 +80,14 @@
     /* حاوية Three.js لعجلة الحظ */
     .threejs-container {
       position: relative;
+      width: 80vmin;
+      height: 80vmin;
       margin: 20px auto;
       border: 5px solid rgba(255,255,255,0.5);
       border-radius: 50%;
       overflow: hidden;
       box-shadow: 0 0 20px rgba(0,0,0,0.9);
       transform: perspective(1000px);
-      /* ضمان عدم خروج العجلة من حدود الشاشة */
-      max-width: 100vw;
-      max-height: 100vh;
-    }
-    /* قواعد تكبير عجلة الحظ حسب حجم الشاشة */
-    @media (max-width: 768px) {
-      .threejs-container {
-        /* 3 أضعاف الحجم الأساسي المعتمد على vmin */
-        width: calc(80vmin * 3);
-        height: calc(80vmin * 3);
-      }
-    }
-    @media (min-width: 769px) {
-      .threejs-container {
-        /* 2 ضعف الحجم الأساسي */
-        width: calc(80vmin * 2);
-        height: calc(80vmin * 2);
-      }
     }
     /* مؤشر ثابت (Pointer) */
     .pointer {
@@ -133,7 +142,7 @@
       padding: 30px 40px;
       border-radius: 8px;
       text-align: center;
-      max-width: 90%;
+      max-width: 80%;
       box-shadow: 0 5px 15px rgba(0,0,0,0.4);
     }
     .modal-content h2 {
@@ -173,47 +182,37 @@
       appId: "1:38968485922:web:667832a4aa77599ba8a6fb",
       measurementId: "G-853WkH2JK7"
     };
+    // تهيئة Firebase
     firebase.initializeApp(firebaseConfig);
     console.log("Firebase initialized");
-    
-    // دالة لحساب بصمة الجهاز باستخدام بيانات الهاتف والإنترنت
-    function getDeviceFingerprint() {
-      const fingerprintData = {
-        userAgent: navigator.userAgent,
-        language: navigator.language,
-        platform: navigator.platform,
-        screen: window.screen.width + "x" + window.screen.height,
-        deviceMemory: navigator.deviceMemory || 'unknown',
-        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
-        connection: (navigator.connection && navigator.connection.effectiveType) || 'unknown'
-      };
-      const fingerprintString = JSON.stringify(fingerprintData);
-      let hash = 5381;
-      for (let i = 0; i < fingerprintString.length; i++) {
-        hash = ((hash << 5) + hash) + fingerprintString.charCodeAt(i);
-      }
-      return 'fp_' + (hash >>> 0);
-    }
-    
-    const deviceFingerprint = getDeviceFingerprint();
-    console.log("Device Fingerprint:", deviceFingerprint);
   </script>
   
 </head>
 <body>
-  <!-- زر تواصل معنا لاستلام هديتك -->
-  <a id="contactButton" href="https://www.instagram.com/mulberry.ps/" target="_blank">تواصل معنا لاستلام هديتك</a>
-  
+  <!-- خلفية الفيديو باستخدام الرابط المرسل -->
+  <video autoplay muted loop class="video-background">
+    <source src="https://media.istockphoto.com/id/1144751020/video/the-muslim-family-husband-wife-and-children-eid-ramadan-salam-quran-mubarak-family-prayers.mp4?s=mp4-640x640-is&k=20&c=ZEh4zko-bJE6ZkvgYNzyRHB6W4tHNgXBhco-DDW1J7U=" type="video/mp4">
+    متصفحك لا يدعم تشغيل الفيديو.
+  </video>
+  <!-- شريط التنقل -->
+  <nav>
+    <div class="logo">mulberry store</div>
+    <ul>
+      <li>
+        <a href="https://www.instagram.com/mulberry.ps/" target="_blank">تواصل معنا لاستلام جائزتك</a>
+      </li>
+    </ul>
+  </nav>
   <!-- المحتوى الرئيسي -->
   <div class="main-content" id="home">
-    <h1>عجلة جوائز</h1>
+    <h1>عجلة جوائز mulberry</h1>
     <div class="threejs-container" id="threejs-container">
       <!-- مؤشر النتيجة -->
       <div class="pointer"></div>
     </div>
     <button id="spinButton">ادور العجلة</button>
   </div>
-  <!-- النافذة المنبثقة لعرض الجائزة أو فترة الانتظار -->
+  <!-- النافذة المنبثقة لعرض الجائزة أو تفعيل فترة الانتظار -->
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal-content" id="modal-content">
       <!-- سيتم تعبئتها ديناميكياً -->
@@ -349,34 +348,17 @@
       return (--t) * t * t + 1;
     }
     
-    /* دالة لإغلاق النافذة دون بدء فترة الانتظار مرة أخرى */
-    function closeModal() {
+    /* دالة لإغلاق النافذة وبدء فترة الانتظار (Cooldown) */
+    function closeModalAndStartCooldown() {
       const modalOverlay = document.getElementById('modal-overlay');
       gsap.to(modalOverlay, { duration: 0.3, opacity: 0, scale: 0.8, onComplete: () => {
         modalOverlay.classList.remove('active');
         modalOverlay.innerHTML = '<div class="modal-content" id="modal-content"></div>';
+        startCooldown();
       }});
     }
     
-    /* دالة لبدء فترة الانتظار (Cooldown)
-       المعامل showOverlay: إذا كان true يتم عرض نافذة العد التنازلي، وإذا كان false يتم فقط تسجيل فترة الانتظار وتعطيل الزر */
-    function startCooldown(showOverlay = true) {
-      const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
-      const newTimestamp = Date.now();
-      firebase.database().ref('cooldowns/' + deviceFingerprint).set(newTimestamp, (error) => {
-        if (error) {
-          console.error("Error setting cooldown: ", error);
-        } else {
-          const endTime = newTimestamp + cooldownDuration;
-          document.getElementById("spinButton").disabled = true;
-          if (showOverlay) {
-            showCooldownOverlay(endTime);
-          }
-        }
-      });
-    }
-    
-    /* دالة لإظهار نافذة العد التنازلي (Cooldown Overlay) */
+    /* دالة لإظهار نافذة الانتظار مع المؤقت (Cooldown) */
     function showCooldownOverlay(endTime) {
       const modalOverlay = document.getElementById('modal-overlay');
       modalOverlay.innerHTML = `
@@ -389,6 +371,7 @@
       modalOverlay.classList.add('active');
       gsap.fromTo(modalOverlay, { scale: 0.8, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1 });
       const timerElement = document.getElementById("cooldownTimer");
+      document.getElementById("spinButton").disabled = true;
       const intervalId = setInterval(() => {
         const remaining = endTime - Date.now();
         if (remaining <= 0) {
@@ -414,27 +397,29 @@
       return `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
     
-    /* فحص فترة الانتظار عند تحميل الصفحة باستخدام بصمة الجهاز */
+    /* دالة لبدء فترة الانتظار (Cooldown) لمدة يومين */
+    function startCooldown() {
+      localStorage.setItem("lastSpin", Date.now());
+      const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
+      const endTime = Date.now() + cooldownDuration;
+      showCooldownOverlay(endTime);
+    }
+    
+    /* فحص فترة الانتظار عند تحميل الصفحة */
     function checkCooldown() {
-      firebase.database().ref('cooldowns/' + deviceFingerprint).once('value').then((snapshot) => {
-        const lastSpin = snapshot.val();
-        if (lastSpin) {
-          const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
-          const endTime = parseInt(lastSpin) + cooldownDuration;
-          const remaining = endTime - Date.now();
-          if (remaining > 0) {
-            showCooldownOverlay(endTime);
-            document.getElementById("spinButton").disabled = true;
-          }
+      const lastSpin = localStorage.getItem("lastSpin");
+      if (lastSpin) {
+        const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
+        const endTime = parseInt(lastSpin) + cooldownDuration;
+        const remaining = endTime - Date.now();
+        if (remaining > 0) {
+          showCooldownOverlay(endTime);
         }
-      }).catch((error) => {
-        console.error("Error checking cooldown: ", error);
-      });
+      }
     }
     checkCooldown();
     
-    /* دالة لإظهار نافذة الجائزة (Prize Notification)
-       يتم عرض الإشعار بعد توقف العجلة حيث يكون القفل مفعلًا بالفعل */
+    /* دالة لإظهار نافذة الجائزة أو النموذج */
     function showPrize(prize) {
       const modalContent = document.getElementById('modal-content');
       if (prize === "حظاً أوفر") {
@@ -443,13 +428,13 @@
           <button class="close-modal" id="closeModal">إغلاق</button>
         `;
         document.getElementById('closeModal').addEventListener('click', () => {
-          closeModal();
+          closeModalAndStartCooldown();
         });
       } else {
         modalContent.innerHTML = `
           <h2>مبروك!</h2>
           <p>لقد ربحت: <strong>${prize}</strong></p>
-          <p>يرجى إدخال اسم المستخدم على إنستاجرام ورقم الواتس اب لضمان تسليم الجائزة للشخص الصحيح.</p>
+          <p>يرجى إدخال اسم المستخدم على إنستاجرام ورقم الواتس اب لضمان تسليم الجائزة للشخص الصحيح واستلام الجائزة.</p>
           <input type="text" id="instagramInput" placeholder="اسم المستخدم على إنستاجرام">
           <input type="text" id="whatsappInput" placeholder="رقم الواتس اب">
           <button class="close-modal" id="submitInfo" style="background: #27ae60;">إرسال المعلومات</button>
@@ -465,14 +450,13 @@
             instagram: instagram,
             whatsapp: whatsapp,
             prize: prize,
-            timestamp: Date.now(),
-            deviceFingerprint: deviceFingerprint
+            timestamp: Date.now()
           }, (error) => {
             if (error) {
               alert("حدث خطأ أثناء إرسال المعلومات. يرجى المحاولة مرة أخرى.");
             } else {
               alert("تم إرسال معلوماتك بنجاح، سيتم التواصل معك لتسليم الجائزة.");
-              closeModal();
+              closeModalAndStartCooldown();
             }
           });
         });
@@ -502,8 +486,6 @@
           adjustedAngle = adjustedAngle % (2 * Math.PI);
           let winningIndex = Math.floor(adjustedAngle / (2 * Math.PI / segments.length));
           let prize = segments[winningIndex];
-          // يبدأ مفعول القفل فور توقف العجلة
-          startCooldown(false);
           showPrize(prize);
         }
       }
