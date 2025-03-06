@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>mulberry store - عجلة جوائز mulberry</title>
+  <title>عجلة جوائز</title>
   <!-- خط عصري من Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   
@@ -22,7 +22,7 @@
       direction: rtl;
       background: #000;
     }
-    /* زر "تواصل معنا لاستلام هديتك" الجديد في أقصى اليسار بالأعلى */
+    /* زر "تواصل معنا لاستلام هديتك" في أقصى اليسار بالأعلى */
     #contactButton {
       position: fixed;
       top: 10px;
@@ -36,8 +36,6 @@
       text-decoration: none;
       z-index: 101;
     }
-    /* إزالة شريط التنقل القديم (تم حذفه بالكامل) */
-    
     /* المحتوى الرئيسي */
     .main-content {
       display: flex;
@@ -46,7 +44,7 @@
       align-items: center;
       height: 100%;
       text-align: center;
-      padding-top: 70px; /* مساحة للتعويض عن الزر الثابت إذا لزم الأمر */
+      padding-top: 70px; /* لتعويض المساحة إذا لزم الأمر */
     }
     .main-content h1 {
       font-size: 3em;
@@ -144,6 +142,20 @@
       border-radius: 5px;
       font-size: 1em;
     }
+    
+    /* تكبير عجلة الحظ بناءً على حجم الشاشة */
+    @media (max-width: 768px) {
+      .threejs-container {
+        width: calc(80vmin * 3);
+        height: calc(80vmin * 3);
+      }
+    }
+    @media (min-width: 769px) {
+      .threejs-container {
+        width: calc(80vmin * 2);
+        height: calc(80vmin * 2);
+      }
+    }
   </style>
   
   <!-- تهيئة Firebase -->
@@ -159,7 +171,6 @@
       appId: "1:38968485922:web:667832a4aa77599ba8a6fb",
       measurementId: "G-853WkH2JK7"
     };
-    // تهيئة Firebase
     firebase.initializeApp(firebaseConfig);
     console.log("Firebase initialized");
     
@@ -182,19 +193,18 @@
       return 'fp_' + (hash >>> 0);
     }
     
-    // الحصول على بصمة الجهاز
     const deviceFingerprint = getDeviceFingerprint();
     console.log("Device Fingerprint:", deviceFingerprint);
   </script>
   
 </head>
 <body>
-  <!-- زر تواصل معنا لاستلام هديتك في أقصى اليسار بالأعلى -->
+  <!-- زر تواصل معنا لاستلام هديتك -->
   <a id="contactButton" href="https://www.instagram.com/mulberry.ps/" target="_blank">تواصل معنا لاستلام هديتك</a>
   
   <!-- المحتوى الرئيسي -->
   <div class="main-content" id="home">
-    <h1>عجلة جوائز mulberry</h1>
+    <h1>عجلة جوائز</h1>
     <div class="threejs-container" id="threejs-container">
       <!-- مؤشر النتيجة -->
       <div class="pointer"></div>
