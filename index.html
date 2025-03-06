@@ -185,6 +185,29 @@
     // تهيئة Firebase
     firebase.initializeApp(firebaseConfig);
     console.log("Firebase initialized");
+    
+    // دالة لحساب بصمة الجهاز باستخدام بيانات الهاتف والإنترنت
+    function getDeviceFingerprint() {
+      const fingerprintData = {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        screen: window.screen.width + "x" + window.screen.height,
+        deviceMemory: navigator.deviceMemory || 'unknown',
+        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+        connection: (navigator.connection && navigator.connection.effectiveType) || 'unknown'
+      };
+      const fingerprintString = JSON.stringify(fingerprintData);
+      let hash = 5381;
+      for (let i = 0; i < fingerprintString.length; i++) {
+        hash = ((hash << 5) + hash) + fingerprintString.charCodeAt(i);
+      }
+      return 'fp_' + (hash >>> 0);
+    }
+    
+    // الحصول على بصمة الجهاز
+    const deviceFingerprint = getDeviceFingerprint();
+    console.log("Device Fingerprint:", deviceFingerprint);
   </script>
   
 </head>
@@ -212,7 +235,7 @@
     </div>
     <button id="spinButton">ادور العجلة</button>
   </div>
-  <!-- النافذة المنبثقة لعرض الجائزة أو تفعيل فترة الانتظار -->
+  <!-- النافذة المنبثقة لعرض الجائزة أو فترة الانتظار -->
   <div class="modal-overlay" id="modal-overlay">
     <div class="modal-content" id="modal-content">
       <!-- سيتم تعبئتها ديناميكياً -->
@@ -348,17 +371,34 @@
       return (--t) * t * t + 1;
     }
     
-    /* دالة لإغلاق النافذة وبدء فترة الانتظار (Cooldown) */
-    function closeModalAndStartCooldown() {
+    /* دالة لإغلاق النافذة دون بدء فترة الانتظار مرة أخرى */
+    function closeModal() {
       const modalOverlay = document.getElementById('modal-overlay');
       gsap.to(modalOverlay, { duration: 0.3, opacity: 0, scale: 0.8, onComplete: () => {
         modalOverlay.classList.remove('active');
         modalOverlay.innerHTML = '<div class="modal-content" id="modal-content"></div>';
-        startCooldown();
       }});
     }
     
-    /* دالة لإظهار نافذة الانتظار مع المؤقت (Cooldown) */
+    /* دالة لبدء فترة الانتظار (Cooldown)
+       المعامل showOverlay: إذا كان true يتم عرض نافذة العد التنازلي، وإذا كان false يتم فقط تسجيل فترة الانتظار وتعطيل الزر */
+    function startCooldown(showOverlay = true) {
+      const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
+      const newTimestamp = Date.now();
+      firebase.database().ref('cooldowns/' + deviceFingerprint).set(newTimestamp, (error) => {
+        if (error) {
+          console.error("Error setting cooldown: ", error);
+        } else {
+          const endTime = newTimestamp + cooldownDuration;
+          document.getElementById("spinButton").disabled = true;
+          if (showOverlay) {
+            showCooldownOverlay(endTime);
+          }
+        }
+      });
+    }
+    
+    /* دالة لإظهار نافذة العد التنازلي (Cooldown Overlay) */
     function showCooldownOverlay(endTime) {
       const modalOverlay = document.getElementById('modal-overlay');
       modalOverlay.innerHTML = `
@@ -371,7 +411,6 @@
       modalOverlay.classList.add('active');
       gsap.fromTo(modalOverlay, { scale: 0.8, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1 });
       const timerElement = document.getElementById("cooldownTimer");
-      document.getElementById("spinButton").disabled = true;
       const intervalId = setInterval(() => {
         const remaining = endTime - Date.now();
         if (remaining <= 0) {
@@ -397,29 +436,27 @@
       return `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
     
-    /* دالة لبدء فترة الانتظار (Cooldown) لمدة يومين */
-    function startCooldown() {
-      localStorage.setItem("lastSpin", Date.now());
-      const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
-      const endTime = Date.now() + cooldownDuration;
-      showCooldownOverlay(endTime);
-    }
-    
-    /* فحص فترة الانتظار عند تحميل الصفحة */
+    /* فحص فترة الانتظار عند تحميل الصفحة باستخدام بصمة الجهاز */
     function checkCooldown() {
-      const lastSpin = localStorage.getItem("lastSpin");
-      if (lastSpin) {
-        const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
-        const endTime = parseInt(lastSpin) + cooldownDuration;
-        const remaining = endTime - Date.now();
-        if (remaining > 0) {
-          showCooldownOverlay(endTime);
+      firebase.database().ref('cooldowns/' + deviceFingerprint).once('value').then((snapshot) => {
+        const lastSpin = snapshot.val();
+        if (lastSpin) {
+          const cooldownDuration = 2 * 24 * 60 * 60 * 1000;
+          const endTime = parseInt(lastSpin) + cooldownDuration;
+          const remaining = endTime - Date.now();
+          if (remaining > 0) {
+            showCooldownOverlay(endTime);
+            document.getElementById("spinButton").disabled = true;
+          }
         }
-      }
+      }).catch((error) => {
+        console.error("Error checking cooldown: ", error);
+      });
     }
     checkCooldown();
     
-    /* دالة لإظهار نافذة الجائزة أو النموذج */
+    /* دالة لإظهار نافذة الجائزة (Prize Notification)
+       يتم استدعاء startCooldown(false) فور ظهور الإشعار لتسجيل فترة الانتظار وتعطيل زر الدوران */
     function showPrize(prize) {
       const modalContent = document.getElementById('modal-content');
       if (prize === "حظاً أوفر") {
@@ -428,13 +465,13 @@
           <button class="close-modal" id="closeModal">إغلاق</button>
         `;
         document.getElementById('closeModal').addEventListener('click', () => {
-          closeModalAndStartCooldown();
+          closeModal();
         });
       } else {
         modalContent.innerHTML = `
           <h2>مبروك!</h2>
           <p>لقد ربحت: <strong>${prize}</strong></p>
-          <p>يرجى إدخال اسم المستخدم على إنستاجرام ورقم الواتس اب لضمان تسليم الجائزة للشخص الصحيح واستلام الجائزة.</p>
+          <p>يرجى إدخال اسم المستخدم على إنستاجرام ورقم الواتس اب لضمان تسليم الجائزة للشخص الصحيح.</p>
           <input type="text" id="instagramInput" placeholder="اسم المستخدم على إنستاجرام">
           <input type="text" id="whatsappInput" placeholder="رقم الواتس اب">
           <button class="close-modal" id="submitInfo" style="background: #27ae60;">إرسال المعلومات</button>
@@ -450,13 +487,14 @@
             instagram: instagram,
             whatsapp: whatsapp,
             prize: prize,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            deviceFingerprint: deviceFingerprint
           }, (error) => {
             if (error) {
               alert("حدث خطأ أثناء إرسال المعلومات. يرجى المحاولة مرة أخرى.");
             } else {
               alert("تم إرسال معلوماتك بنجاح، سيتم التواصل معك لتسليم الجائزة.");
-              closeModalAndStartCooldown();
+              closeModal();
             }
           });
         });
@@ -464,6 +502,8 @@
       const modalOverlay = document.getElementById('modal-overlay');
       modalOverlay.classList.add('active');
       gsap.fromTo(modalOverlay, { scale: 0.8, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1 });
+      // عند ظهور إشعار الجائزة يتم بدء قفل العجلة فوراً (بدون عرض نافذة العد التنازلي حالياً)
+      startCooldown(false);
     }
     
     /* حلقة الرسوم المتحركة */
