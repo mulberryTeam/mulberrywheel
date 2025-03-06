@@ -456,7 +456,7 @@
     checkCooldown();
     
     /* دالة لإظهار نافذة الجائزة (Prize Notification)
-       يتم استدعاء startCooldown(false) فور ظهور الإشعار لتسجيل فترة الانتظار وتعطيل زر الدوران */
+       يتم عرض الإشعار بعد توقف العجلة، حيث يكون قفل العجلة مفعل بالفعل */
     function showPrize(prize) {
       const modalContent = document.getElementById('modal-content');
       if (prize === "حظاً أوفر") {
@@ -502,8 +502,6 @@
       const modalOverlay = document.getElementById('modal-overlay');
       modalOverlay.classList.add('active');
       gsap.fromTo(modalOverlay, { scale: 0.8, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1 });
-      // عند ظهور إشعار الجائزة يتم بدء قفل العجلة فوراً (بدون عرض نافذة العد التنازلي حالياً)
-      startCooldown(false);
     }
     
     /* حلقة الرسوم المتحركة */
@@ -526,6 +524,8 @@
           adjustedAngle = adjustedAngle % (2 * Math.PI);
           let winningIndex = Math.floor(adjustedAngle / (2 * Math.PI / segments.length));
           let prize = segments[winningIndex];
+          // يبدأ مفعول القفل فور توقف العجلة
+          startCooldown(false);
           showPrize(prize);
         }
       }
