@@ -51,7 +51,7 @@
       z-index: 101;
       cursor: pointer;
     }
-    /* زر الإدارة المخفي (أسفل اليمين) */
+    /* زر الإدارة المخفي (أسفل اليمين) - تم تغييره ليكون شفافاً بالكامل */
     #adminButton {
       position: fixed;
       bottom: 10px;
@@ -63,7 +63,7 @@
       border-radius: 50%;
       z-index: 102;
       cursor: pointer;
-      opacity: 0.5;
+      opacity: 0;
     }
     /* المحتوى الرئيسي */
     .main-content {
@@ -361,7 +361,6 @@
           console.error("Error setting cooldown: ", error);
         } else {
           const endTime = newTimestamp + cooldownDuration;
-          // إذا override مفعل، لا نقفل زر الدوران
           document.getElementById("spinButton").disabled = adminLockOverride ? false : true;
           if (showOverlay) {
             showCooldownOverlay(endTime);
@@ -517,7 +516,7 @@
       });
     }
     
-    // شاشة دخول الأدمن؛ لا تغيير حالة override هنا
+    // شاشة دخول الأدمن
     function showAdminLoginModal() {
       const modalOverlay = document.getElementById('modal-overlay');
       modalOverlay.innerHTML = `
@@ -533,7 +532,7 @@
       document.getElementById('adminSubmitButton').addEventListener('click', () => {
         const pass = document.getElementById('adminPasswordInput').value.trim();
         if(pass === "123&ahmad") {
-          // لا نقوم بتغيير override تلقائيًا؛ فقط نعرض زر التحكم حسب الحالة الحالية
+          // لا تغيير override تلقائيًا؛ فقط عرض زر التحكم حسب الحالة الحالية
           document.getElementById('admin-modal-content').innerHTML = `
             <h2>وضع تحكم القفل</h2>
             <button class="close-modal" id="adminControlButton">
@@ -544,14 +543,12 @@
             adminLockOverride = !adminLockOverride;
             localStorage.setItem('adminLockOverride', adminLockOverride ? 'true' : 'false');
             if(adminLockOverride) {
-              // إذا تم تعطيل القفل، يتم إغلاق النافذة وتفعيل جميع الأزرار
               document.getElementById('adminControlButton').innerText = "إعادة تشغيل القفل";
               closeModal();
               document.getElementById("spinButton").disabled = false;
               document.getElementById("prizesButton").style.pointerEvents = 'auto';
               document.getElementById("prizesButton").style.opacity = '1';
             } else {
-              // إعادة تفعيل القفل: يتم استدعاء checkCooldown لإظهار فترة الانتظار إذا تبقى وقت
               document.getElementById('adminControlButton').innerText = "إيقاف القفل";
               checkCooldown();
             }
