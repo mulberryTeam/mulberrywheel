@@ -171,6 +171,35 @@
       border-radius: 5px;
       font-size: 1em;
     }
+    
+    /* تخصيص النافذة المنبثقة لتكون أصغر وقابلة للتمرير على الأجهزة الصغيرة */
+    @media only screen and (max-width: 600px) {
+      .modal-content {
+        max-width: 90%;
+        max-height: 70vh;
+        overflow-y: auto;
+        direction: rtl; /* لجعل شريط التمرير يظهر على اليسار */
+        padding-left: 20px;
+      }
+      /* تخصيص شريط التمرير في النوافذ القابلة للتمرير */
+      .modal-content::-webkit-scrollbar {
+        width: 8px;
+      }
+      .modal-content::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .modal-content::-webkit-scrollbar-thumb {
+        background-color: black;
+        border-radius: 4px;
+        border: none;
+        animation: scrollbarAnimation 2s linear infinite;
+      }
+      @keyframes scrollbarAnimation {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+      }
+    }
   </style>
   
   <!-- إعداد Firebase وبصمة الجهاز -->
@@ -344,11 +373,15 @@
       return (--t) * t * t + 1;
     }
     
+    // تعديل دالة إغلاق النوافذ لإظهار القفل مباشرة بعد الإغلاق
     function closeModal() {
       const modalOverlay = document.getElementById('modal-overlay');
       gsap.to(modalOverlay, { duration: 0.3, opacity: 0, scale: 0.8, onComplete: () => {
         modalOverlay.classList.remove('active');
         modalOverlay.innerHTML = '<div class="modal-content" id="modal-content"></div>';
+        if (!adminLockOverride) {
+          checkCooldown();
+        }
       }});
     }
     
@@ -516,6 +549,9 @@
         gsap.to(modalOverlay, { duration: 0.3, opacity: 0, scale: 0.8, onComplete: () => {
           modalOverlay.classList.remove('active');
           modalOverlay.innerHTML = '<div class="modal-content" id="modal-content"></div>';
+          if (!adminLockOverride) {
+            checkCooldown();
+          }
         }});
       });
     }
