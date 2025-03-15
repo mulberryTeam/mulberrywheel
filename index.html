@@ -339,30 +339,25 @@
       renderer.setSize(width, height);
     });
     
+    // استبدال عجلة الحظ بــCircleGeometry بدون سماكة
+    const wheelRadius = 5;
     const wheelCanvas = createWheelTexture(segments, segmentColors);
     const wheelTexture = new THREE.CanvasTexture(wheelCanvas);
     wheelTexture.needsUpdate = true;
-    const wheelRadius = 5;
-    const wheelThickness = 1;
-    const geometry = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelThickness, 64, 1, false);
-    geometry.rotateX(Math.PI / 2);
-    const materialTop = new THREE.MeshPhongMaterial({ map: wheelTexture });
-    const materialSide = new THREE.MeshPhongMaterial({ color: 0x333333, shininess: 100 });
-    const materialBottom = new THREE.MeshPhongMaterial({ color: 0x222222 });
-    const wheel = new THREE.Mesh(geometry, [materialSide, materialTop, materialBottom]);
+    const geometry = new THREE.CircleGeometry(wheelRadius, 64);
+    const material = new THREE.MeshPhongMaterial({ map: wheelTexture, side: THREE.DoubleSide });
+    const wheel = new THREE.Mesh(geometry, material);
+    // تدوير العجلة لتكون في الوضع الأفقي
+    wheel.rotation.x = -Math.PI / 2;
     scene.add(wheel);
+    
+    // إزالة الأرضية (لا يوجد كائن أرض)
     
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
     directionalLight.position.set(10, 10, 10);
     scene.add(directionalLight);
-    const floorGeometry = new THREE.PlaneGeometry(200, 200);
-    const floorMaterial = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 50 });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -wheelThickness / 2 - 0.1;
-    scene.add(floor);
     
     let isSpinning = false;
     let spinStartTime = null;
